@@ -1,3 +1,9 @@
+/*
+*    Crazy Cart Main Code
+*    Petrovic Luka, Emmerlahu Leonit, Lang Elias
+*    v 0.5
+*/
+
 #define ADC_Kanaele 4  // Anzahl der ADC-Kanäle
 #include <Arduino.h>
 

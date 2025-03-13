@@ -1,7 +1,7 @@
 /*
 *    Crazy Cart Main Code
 *    Petrovic Luka, Emmerlahu Leonit, Lang Elias
-*    v 0.5
+*    v 0.6
 */
 
 #define ADC_Kanaele 4  // Anzahl der ADC-Kanäle
@@ -25,19 +25,13 @@ ISR(TIMER1_OVF_vect) {
 
 ISR(ADC_vect) {
     adcWerte[aktuellerKanal] = ADC;  // Wert speichern
-
     aktuellerKanal = (aktuellerKanal + 1) % ADC_Kanaele; // Kanal wechseln
     ADMUX = (ADMUX & 0xF0) | aktuellerKanal; // Nur den Kanal setzen
-
-    // Auto Trigger aktivieren mit Timer1 
-    ADCSRB = (1 << ADTS2) | (1 << ADTS1);
-    ADCSRA |= (1 << ADATE); // Auto-Trigger aktivieren
 }
 
-// ISR für den Encoder
 void encoderISR() {
     if (digitalRead(rotationPin) == HIGH) {
-        pulseCount++;  // Zähle die Impulse in der ISR
+        pulseCount++;  
     } else {
         pulseCount--;
     }
@@ -47,27 +41,23 @@ void setup() {
     Serial.begin(115200);
 
     // TIMER1 SETUP
-    TCCR1A = 0;  // Normaler Modus
-    TCCR1B = (1 << CS12) | (1 << CS10);  // Prescaler
-    TIMSK1 = (1 << TOIE1);  // Interrupt aktivieren
+    TCCR1A = 0;  
+    TCCR1B = (1 << CS11) | (1 << CS10);  // Prescaler auf 64, Timer schneller
+    TIMSK1 = (1 << TOIE1);  
 
-    // ADC SETUP (Single Conversion Mode) 
-    ADCSRA = (1 << ADEN)  // ADC aktivieren
-           | (1 << ADIE)  // Interrupt aktivieren
-           | (1 << ADPS2) | (1 << ADPS1) | (1 << ADPS0); // Prescaler 128 kHz
+    // ADC SETUP (Schnellerer Prescaler)
+    ADCSRA = (1 << ADEN)  
+           | (1 << ADIE)  
+           | (1 << ADPS2); // Prescaler auf 16 für höhere ADC Geschwindigkeit
 
     sei(); // Interrupts aktivieren
 
-    // Pins für den Encoder
     pinMode(encoderPin, INPUT_PULLUP);
     pinMode(rotationPin, INPUT);
-
-    // Interrupt für den Encoder registrieren
     attachInterrupt(digitalPinToInterrupt(encoderPin), encoderISR, FALLING);  
 }
 
 void loop() {
-    // ADC-Werte ausgeben
     Serial.print("ADC Channels: ");
     for (int i = 0; i < ADC_Kanaele; i++) {
         Serial.print("CH"); 
@@ -78,19 +68,17 @@ void loop() {
     }
     Serial.println();
 
-    // Geschwindigkeit berechnen
     int count = pulseCount;
-    float speed = (float)((wheelCircumference / magnets) * count) / 0.5;  // Geschwindigkeit in mm/s
+    float speed = (float)((wheelCircumference / magnets) * count) / 0.5;  
     Serial.print("Geschwindigkeit: ");
     Serial.print(speed);
     Serial.println(" mm/s");
 
-    // Strecke berechnen
     distance += (count * wheelCircumference) / magnets;
     Serial.print("Zurückgelegte Strecke: ");
     Serial.print(distance);
     Serial.println(" mm");
 
-    pulseCount = 0; // Reset nach der Berechnung
-    delay(500);  // Ausgabe-Intervall
+    pulseCount = 0; 
+    delay(500);  // 500ms Ausgabe
 }

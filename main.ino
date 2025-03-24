@@ -11,10 +11,10 @@
 #define ADC_Kanaele 4  // Anzahl der ADC-Kanäle
 
 volatile uint16_t adcWerte[ADC_Kanaele]; // Array zum Speichern der Werte
-volatile uint8_t aktuellerKanal = 0;  // Aktueller MUX-Kanal
+volatile uint8_t aktuellerKanal = 0;  // Aktueller MUX-Kanal //ENK: Besser statische Variable
 
 long distance = 0;
-int pulseCount = 0;
+int pulseCount = 0; //ENK: Volatile fehlt
 
 const int magnets = 20;
 const int wheelCircumference = 100; // Radumfang in mm
@@ -29,6 +29,7 @@ void init_timer1() {
     TIMSK1 = (1 << OCIE1A); // Timer1 Compare Match Interrupt aktivieren
 }
 
+//ENK :Timer 3 eigent sich besser das timer 3 direkt mit dem Lenkservo verbunden ist (OC3A)
 void init_timer4() {
     // Timer4 für Servo-Steuerung
     TCCR4A = 0;
@@ -68,12 +69,15 @@ void init_adc() {
     ADMUX = (1 << REFS0); // AVcc als Referenzspannung
     ADCSRA = (1 << ADEN) | (1 << ADIE) | (1 << ADPS2); // ADC aktivieren, Interrupt aktivieren, Prescaler auf 16
     ADCSRA |= (1 << ADSC); // Erste Wandlung starten
+	
+	// ENK: Timer1 als Autotrigger nutzen
 }
 
 void setup() {
     Serial.begin(115200);
-
-    // Timer initialisieren
+	//ENK: Interrupts deativieren
+    
+	// Timer initialisieren
     init_timer1();
     init_timer4();
 
@@ -85,7 +89,7 @@ void setup() {
     pinMode(encoderPin, INPUT_PULLUP);
     pinMode(rotationPin, INPUT);
     attachInterrupt(digitalPinToInterrupt(encoderPin), encoderISR, FALLING);  
-
+	
     // Servo auf 90 Grad stellen
     set_servo_position(90);
 }
@@ -101,6 +105,7 @@ void loop() {
     }
     Serial.println();
 
+	//ENK: grundsätzlich funktioniert die Geschwindigkeitsmessung, muss aber später angepasst werden (kein delay von 1000ms).
     int count = pulseCount;
     float speed = (float)((wheelCircumference / magnets) * count) / 0.5;  
     Serial.print("Geschwindigkeit: ");
@@ -115,6 +120,6 @@ void loop() {
     // Servo basierend auf ADC-Wert steuern
     set_servo_position(map(adcWerte[0], 0, 1023, 0, 180));
 
-    pulseCount = 0; 
+    pulseCount = 0; //ENK: Pulsecount sollte unmittelbar dem Auslesen in die variable count auf 0 gesetzt werden
     delay(1000);  // 1000ms Ausgabe
 }
